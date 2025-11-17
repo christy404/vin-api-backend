@@ -9,18 +9,25 @@ async function checkVIN() {
   }
 
   resultBox.style.display = "block";
-  resultBox.innerHTML = "Checking...";
+  resultBox.innerHTML = "Checking (NHTSA)...";
 
   try {
-    const res = await fetch(`/api/vin?v=${vin}`);
-    const data = await res.json();
+    // Direct call to free NHTSA API (no backend needed for dev)
+    const res = await fetch(
+      `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVin/${encodeURIComponent(vin)}?format=json`
+    );
+    const json = await res.json();
 
-    resultBox.innerHTML = `
-      <strong>Status:</strong> ${data.success}<br>
-      <strong>VIN:</strong> ${data.vin}<br>
-      <strong>Message:</strong> ${data.message}
-    `;
+    // Pick a few useful fields to display
+    const data = {};
+    json.Results.forEach(item => {
+      if (item.Variable && item.Value && item.Value !== 'Not Applicable') {
+        data[item.Variable] = item.Value;
+      }
+    });
+
+    resultBox.innerHTML = `<pre>${JSON.stringify({ vin, data }, null, 2)}</pre>`;
   } catch (err) {
-    resultBox.innerHTML = "Error contacting server.";
+    resultBox.innerHTML = "Error contacting NHTSA: " + err.message;
   }
 }
