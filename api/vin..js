@@ -1,18 +1,24 @@
 export default async function handler(req, res) {
   const { vin } = req.query;
 
-  if (!vin || vin.length !== 17) {
-    return res.status(400).json({ error: "VIN must be 17 characters" });
+  if (!vin) {
+    return res.status(400).json({ error: "VIN is required" });
   }
 
   try {
-    const apiUrl = `https://example-us-vin-api.com/lookup?vin=${vin}&apikey=${process.env.US_API_KEY}`;
+    const response = await fetch(
+      `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVin/${vin}?format=json`
+    );
 
-    const response = await fetch(apiUrl);
     const data = await response.json();
 
-    return res.status(200).json(data);
-  } catch (error) {
-    return res.status(500).json({ error: "API fetch failed", details: error.message });
+    res.status(200).json({
+      source: "NHTSA Free API",
+      vin,
+      result: data.Results
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch VIN data", details: err });
   }
 }
+
